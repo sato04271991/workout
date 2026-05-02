@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Workout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: #fff;
+    }
+    h1 {
+      text-align: center;
+    }
+    .card {
+      background: #1e1e1e;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      background: #0a84ff;
+      color: white;
+    }
+    .done {
+      background: #2ecc71 !important;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Workout</h1>
+
+<div class="card">
+  <div>腕立て 20回</div>
+  <button onclick="done(this)">完了</button>
+</div>
+
+<div class="card">
+  <div>スクワット 20回</div>
+  <button onclick="done(this)">完了</button>
+</div>
+
+<div class="card">
+  <div>腹筋 20回</div>
+  <button onclick="done(this)">完了</button>
+</div>
+
+<button onclick="resetAll()">リセット</button>
+
+<script>
+  function done(btn) {
+    btn.classList.add("done");
+    btn.innerText = "完了済み";
+  }
+
+  function resetAll() {
+    document.querySelectorAll("button").forEach(btn => {
+      btn.classList.remove("done");
+      if (btn.innerText === "完了済み") {
+        btn.innerText = "完了";
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
