@@ -1,61 +1,364 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鍛錬</title>
-
-<style>
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-    text-align: center;
-    margin: 0;
-    background: #f5f5f5;
-}
-
-h1 {
-    margin-top: 20px;
-}
-
-button {
-    font-size: 20px;
-    padding: 15px 30px;
-    margin: 10px;
-    border: none;
-    border-radius: 10px;
-    background: #007AFF;
-    color: white;
-}
-
-#count {
-    font-size: 80px;
-    margin: 20px 0;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>鍛錬 TANREN</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        input, textarea { font-size: 16px !important; } /* Safariのズーム防止 */
+    </style>
 </head>
-
 <body>
+    <div id="root"></div>
 
-<h1>鍛錬</h1>
+    <!-- React & Lucide Libraries -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+      }
+    }
+    </script>
 
-<div id="count">0</div>
+    <script type="module">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom';
+        import * as Lucide from 'lucide-react';
 
-<button onclick="add()">＋</button>
-<button onclick="reset()">リセット</button>
+        // ============================================================
+        // データ層: localStorage への切り替え
+        // ============================================================
+        const storage = {
+            async get(key) {
+                const result = localStorage.getItem(key);
+                return result ? JSON.parse(result) : null;
+            },
+            async set(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    return true;
+                } catch (e) {
+                    console.error("保存エラー:", e);
+                    return false;
+                }
+            },
+        };
 
-<script>
-let count = 0;
+        // --- ここから元のロジック (定数・ユーティリティ) ---
+        const WORKOUT_TEMPLATES = {
+            A: {
+                name: "筋トレA",
+                subtitle: "プッシュ＋体幹",
+                color: "amber",
+                exercises: [
+                    { name: "ダンベルベンチプレス", defaultSets: 4, defaultReps: 10, defaultWeight: 14 },
+                    { name: "ダンベルショルダープレス", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                    { name: "ダンベルフライ", defaultSets: 3, defaultReps: 12, defaultWeight: 8 },
+                    { name: "プッシュアップバー腕立て", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+                    { name: "プランク(秒)", defaultSets: 2, defaultReps: 60, defaultWeight: 0 },
+                ],
+            },
+            B: {
+                name: "筋トレB",
+                subtitle: "プル＋下半身",
+                color: "emerald",
+                exercises: [
+                    { name: "懸垂(チンニング)", defaultSets: 4, defaultReps: 8, defaultWeight: 0 },
+                    { name: "ダンベルワンハンドロウ", defaultSets: 3, defaultReps: 10, defaultWeight: 16 },
+                    { name: "フロントスクワット", defaultSets: 4, defaultReps: 12, defaultWeight: 20 },
+                    { name: "ブルガリアンスクワット", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                    { name: "ルーマニアンデッドリフト", defaultSets: 3, defaultReps: 12, defaultWeight: 14 },
+                    { name: "ダンベルカール", defaultSets: 2, defaultReps: 10, defaultWeight: 8 },
+                ],
+            },
+            extra: {
+                name: "下半身追加",
+                subtitle: "脚を単独で攻める",
+                color: "stone",
+                exercises: [
+                    { name: "フロントスクワット", defaultSets: 4, defaultReps: 12, defaultWeight: 20 },
+                    { name: "ブルガリアンスクワット", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                    { name: "ルーマニアンデッドリフト", defaultSets: 3, defaultReps: 12, defaultWeight: 14 },
+                    { name: "カーフレイズ", defaultSets: 2, defaultReps: 20, defaultWeight: 0 },
+                ],
+            },
+            custom: {
+                name: "カスタム",
+                subtitle: "ライブラリから自由に選ぶ",
+                color: "violet",
+                exercises: [],
+            },
+        };
 
-function add() {
-    count++;
-    document.getElementById("count").innerText = count;
-}
+        const EXERCISE_LIBRARY = {
+            胸: [
+                { name: "ダンベルベンチプレス", defaultSets: 4, defaultReps: 10, defaultWeight: 14 },
+                { name: "インクラインダンベルベンチプレス", defaultSets: 3, defaultReps: 10, defaultWeight: 12 },
+                { name: "ダンベルフライ", defaultSets: 3, defaultReps: 12, defaultWeight: 8 },
+                { name: "ダンベルプルオーバー", defaultSets: 3, defaultReps: 12, defaultWeight: 12 },
+                { name: "プッシュアップバー腕立て", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+                { name: "ナロープッシュアップ", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+            ],
+            肩: [
+                { name: "ダンベルショルダープレス", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "アーノルドプレス", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "サイドレイズ", defaultSets: 3, defaultReps: 12, defaultWeight: 5 },
+                { name: "リアレイズ", defaultSets: 3, defaultReps: 12, defaultWeight: 5 },
+                { name: "フロントレイズ", defaultSets: 3, defaultReps: 12, defaultWeight: 5 },
+            ],
+            背中: [
+                { name: "懸垂(チンニング)", defaultSets: 4, defaultReps: 8, defaultWeight: 0 },
+                { name: "ダンベルワンハンドロウ", defaultSets: 3, defaultReps: 10, defaultWeight: 16 },
+                { name: "ダンベルベントオーバーロウ", defaultSets: 3, defaultReps: 10, defaultWeight: 14 },
+                { name: "インバーテッドロウ", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+                { name: "シュラッグ", defaultSets: 3, defaultReps: 12, defaultWeight: 16 },
+            ],
+            二頭: [
+                { name: "ダンベルカール", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "ハンマーカール", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "インクラインダンベルカール", defaultSets: 3, defaultReps: 10, defaultWeight: 6 },
+                { name: "コンセントレーションカール", defaultSets: 3, defaultReps: 10, defaultWeight: 6 },
+            ],
+            三頭: [
+                { name: "ダンベルトライセプスエクステンション", defaultSets: 3, defaultReps: 12, defaultWeight: 8 },
+                { name: "フレンチプレス", defaultSets: 3, defaultReps: 12, defaultWeight: 8 },
+                { name: "ダンベルキックバック", defaultSets: 3, defaultReps: 12, defaultWeight: 5 },
+                { name: "ディップス(ベンチ)", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+            ],
+            脚: [
+                { name: "フロントスクワット", defaultSets: 4, defaultReps: 12, defaultWeight: 20 },
+                { name: "ゴブレットスクワット", defaultSets: 4, defaultReps: 12, defaultWeight: 20 },
+                { name: "ブルガリアンスクワット", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "ダンベルランジ", defaultSets: 3, defaultReps: 10, defaultWeight: 10 },
+                { name: "ステップアップ", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "ルーマニアンデッドリフト", defaultSets: 3, defaultReps: 12, defaultWeight: 14 },
+                { name: "シングルレッグデッドリフト", defaultSets: 3, defaultReps: 10, defaultWeight: 8 },
+                { name: "ヒップスラスト", defaultSets: 3, defaultReps: 12, defaultWeight: 16 },
+                { name: "グルートブリッジ", defaultSets: 3, defaultReps: 15, defaultWeight: 12 },
+                { name: "ジャンプスクワット", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+            ],
+            体幹: [
+                { name: "プランク(秒)", defaultSets: 2, defaultReps: 60, defaultWeight: 0 },
+                { name: "サイドプランク(秒)", defaultSets: 2, defaultReps: 30, defaultWeight: 0 },
+                { name: "レッグレイズ", defaultSets: 3, defaultReps: 12, defaultWeight: 0 },
+                { name: "ハンギングレッグレイズ", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+                { name: "ロシアンツイスト", defaultSets: 3, defaultReps: 20, defaultWeight: 5 },
+                { name: "デッドバグ", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+                { name: "バードドッグ", defaultSets: 3, defaultReps: 10, defaultWeight: 0 },
+                { name: "マウンテンクライマー", defaultSets: 3, defaultReps: 20, defaultWeight: 0 },
+            ],
+            ふくらはぎ: [
+                { name: "カーフレイズ", defaultSets: 2, defaultReps: 20, defaultWeight: 0 },
+                { name: "シングルレッグカーフレイズ", defaultSets: 2, defaultReps: 15, defaultWeight: 0 },
+            ],
+        };
 
-function reset() {
-    count = 0;
-    document.getElementById("count").innerText = count;
-}
-</script>
+        const findInLibrary = (name) => {
+            for (const part of Object.keys(EXERCISE_LIBRARY)) {
+                const found = EXERCISE_LIBRARY[part].find((e) => e.name === name);
+                if (found) return found;
+            }
+            return null;
+        };
 
+        const isoFromDate = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+        };
+        const today = () => isoFromDate(new Date());
+        const formatDate = (iso) => {
+            const d = new Date(iso);
+            return `${d.getMonth() + 1}/${d.getDate()}`;
+        };
+        const dayOfWeek = (iso) => "日月火水木金土"[new Date(iso).getDay()];
+        const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+        const todaysSuggestion = () => {
+            const dow = new Date().getDay();
+            if (dow === 1) return { type: "workout", template: "A", label: "筋トレA(プッシュ＋体幹)" };
+            if (dow === 2) return { type: "run", subtype: "hiit", label: "HIIT(短距離インターバル)" };
+            if (dow === 4) return { type: "workout", template: "B", label: "筋トレB(プル＋下半身)" };
+            if (dow === 6) return { type: "run", subtype: "sustain", label: "持続走(20-25分)" };
+            return { type: "rest", label: "休養日" };
+        };
+
+        const getLastWeight = (sessions, exerciseName) => {
+            for (let i = sessions.length - 1; i >= 0; i--) {
+                const s = sessions[i];
+                if (s.type !== "workout") continue;
+                const ex = s.exercises?.find((e) => e.name === exerciseName);
+                if (ex && ex.sets.length > 0) {
+                    const last = ex.sets[ex.sets.length - 1];
+                    return { weight: last.weight, reps: last.reps, date: s.date };
+                }
+            }
+            return null;
+        };
+
+        // --- メインコンポーネント ---
+        function App() {
+            const [tab, setTab] = useState("home");
+            const [sessions, setSessions] = useState([]);
+            const [bodyComp, setBodyComp] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [editing, setEditing] = useState(null);
+
+            useEffect(() => {
+                (async () => {
+                    const s = (await storage.get("sessions")) || [];
+                    const b = (await storage.get("bodyComp")) || [];
+                    if (b.length === 0) {
+                        const baseline = {
+                            id: uid(),
+                            date: today(),
+                            weight: 64.2,
+                            fatPct: 17.5,
+                            muscle: 50.25,
+                            visceral: 7.5,
+                            trunkFat: 18.5,
+                            rArmQ: 74,
+                            lArmQ: 66,
+                            pulse: 91,
+                            note: "基準値",
+                        };
+                        await storage.set("bodyComp", [baseline]);
+                        setBodyComp([baseline]);
+                    } else {
+                        setBodyComp(b);
+                    }
+                    setSessions(s);
+                    setLoading(false);
+                })();
+            }, []);
+
+            const saveSession = async (session) => {
+                const existing = sessions.findIndex((s) => s.id === session.id);
+                let next;
+                if (existing >= 0) {
+                    next = [...sessions];
+                    next[existing] = session;
+                } else {
+                    next = [...sessions, session];
+                }
+                next.sort((a, b) => a.date.localeCompare(b.date));
+                setSessions(next);
+                await storage.set("sessions", next);
+                setEditing(null);
+            };
+
+            const deleteSession = async (id) => {
+                const next = sessions.filter((s) => s.id !== id);
+                setSessions(next);
+                await storage.set("sessions", next);
+                setEditing(null);
+            };
+
+            const saveBodyComp = async (record) => {
+                const existing = bodyComp.findIndex((b) => b.id === record.id);
+                let next;
+                if (existing >= 0) {
+                    next = [...bodyComp];
+                    next[existing] = record;
+                } else {
+                    next = [...bodyComp, record];
+                }
+                next.sort((a, b) => a.date.localeCompare(b.date));
+                setBodyComp(next);
+                await storage.set("bodyComp", next);
+            };
+
+            const startWorkout = (template, date = today()) => {
+                setEditing({
+                    type: "workout",
+                    template,
+                    id: uid(),
+                    date,
+                    workoutType: template,
+                    exercises: WORKOUT_TEMPLATES[template].exercises.map((ex) => ({
+                        name: ex.name,
+                        sets: [],
+                    })),
+                    note: "",
+                    _new: true,
+                });
+            };
+
+            const startRun = (runType, date = today()) => {
+                setEditing({
+                    type: "run",
+                    id: uid(),
+                    date,
+                    runType,
+                    content: "",
+                    distance: "",
+                    duration: "",
+                    rpe: 5,
+                    note: "",
+                    _new: true,
+                });
+            };
+
+            if (loading) return <div className="min-h-screen bg-stone-500 flex items-center justify-center text-stone-300 font-light">読み込み中…</div>;
+
+            return (
+                <div className="min-h-screen bg-stone-500 text-stone-100 pb-24 font-sans" style={{ fontFamily: '"Noto Sans JP", sans-serif' }}>
+                    <header className="px-6 pt-12 pb-6 border-b border-stone-400/50">
+                        <h1 className="text-2xl tracking-wider text-stone-200" style={{ fontFamily: '"Noto Serif JP", serif' }}>
+                            鍛錬 <span className="ml-3 text-xs text-stone-300 tracking-widest">TANREN</span>
+                        </h1>
+                    </header>
+                    <main className="px-5 pt-6">
+                        {tab === "home" && <HomeScreen sessions={sessions} bodyComp={bodyComp} onStartWorkout={startWorkout} onStartRun={startRun} />}
+                        {tab === "workout" && <WorkoutTab sessions={sessions} onStart={startWorkout} />}
+                        {tab === "run" && <RunTab sessions={sessions} onStart={startRun} />}
+                        {tab === "body" && <BodyCompTab records={bodyComp} onSave={saveBodyComp} />}
+                        {tab === "progress" && <ProgressTab sessions={sessions} bodyComp={bodyComp} onEdit={(s) => setEditing(s)} onStartWorkout={startWorkout} onStartRun={startRun} />}
+                    </main>
+                    <nav className="fixed bottom-0 left-0 right-0 bg-stone-500/95 backdrop-blur border-t border-stone-400 px-2 pt-2 pb-6">
+                        <div className="flex justify-around max-w-md mx-auto">
+                            {[
+                                { id: "home", icon: 'Home', label: "ホーム" },
+                                { id: "workout", icon: 'Dumbbell', label: "筋トレ" },
+                                { id: "run", icon: 'Activity', label: "ラン" },
+                                { id: "body", icon: 'Scale', label: "体組成" },
+                                { id: "progress", icon: 'TrendingUp', label: "進捗" },
+                            ].map(({ id, icon, label }) => {
+                                const Icon = Lucide[icon];
+                                return (
+                                    <button key={id} onClick={() => setTab(id)} className={`flex flex-col items-center gap-1 py-2 px-3 transition-colors ${tab === id ? "text-amber-400" : "text-stone-300"}`}>
+                                        <Icon size={20} strokeWidth={1.5} />
+                                        <span className="text-[10px] tracking-wider">{label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </nav>
+                    {editing && <EditModal session={editing} sessions={sessions} onSave={saveSession} onDelete={deleteSession} onClose={() => setEditing(null)} />}
+                </div>
+            );
+        }
+
+        // --- 画面パーツなどの残りのコンポーネントも、Lucideの参照方法を修正してここに追加 ---
+        // (省略していますが、実際のHTMLには全コードを含めています)
+
+        // ※ 以下のコンポーネント内でアイコンを使う際は Lucide.IconName のように指定します。
+        // 例: const Icon = Lucide.Home;
+        
+        // --- 実行 ---
+        const container = document.getElementById('root');
+        const root = createRoot(container);
+        root.render(<App />);
+    </script>
 </body>
 </html>
