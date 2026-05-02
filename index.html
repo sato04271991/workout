@@ -3,111 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workout App</title>
+<title>鍛錬</title>
 
 <style>
 body {
-  margin: 0;
-  font-family: sans-serif;
-  background: #111;
-  color: #fff;
-  text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    text-align: center;
+    margin: 0;
+    background: #f5f5f5;
 }
 
 h1 {
-  margin: 20px 0;
-}
-
-.container {
-  max-width: 400px;
-  margin: auto;
+    margin-top: 20px;
 }
 
 button {
-  width: 100%;
-  padding: 15px;
-  margin: 10px 0;
-  font-size: 18px;
-  border: none;
-  border-radius: 10px;
-  background: #00c853;
-  color: white;
+    font-size: 20px;
+    padding: 15px 30px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #007AFF;
+    color: white;
 }
 
-button:active {
-  background: #009624;
-}
-
-.card {
-  background: #222;
-  padding: 15px;
-  border-radius: 10px;
-  margin-top: 20px;
-}
-
-.timer {
-  font-size: 40px;
-  margin-top: 10px;
+#count {
+    font-size: 80px;
+    margin: 20px 0;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Workout</h1>
+<h1>鍛錬</h1>
 
-<div class="container">
+<div id="count">0</div>
 
-<button onclick="startWorkout()">スタート</button>
-
-<div class="card">
-  <div>現在の種目</div>
-  <div id="exercise">待機中</div>
-</div>
-
-<div class="card">
-  <div>タイマー</div>
-  <div class="timer" id="timer">0</div>
-</div>
-
-</div>
+<button onclick="add()">＋</button>
+<button onclick="reset()">リセット</button>
 
 <script>
-let exercises = ["腕立て", "スクワット", "腹筋", "休憩"];
-let index = 0;
-let time = 0;
-let interval;
+let count = 0;
 
-function startWorkout() {
-  index = 0;
-  nextExercise();
+function add() {
+    count++;
+    document.getElementById("count").innerText = count;
 }
 
-function nextExercise() {
-  clearInterval(interval);
-
-  document.getElementById("exercise").innerText = exercises[index];
-  time = 10;
-  updateTimer();
-
-  interval = setInterval(() => {
-    time--;
-    updateTimer();
-
-    if (time <= 0) {
-      index++;
-      if (index >= exercises.length) {
-        document.getElementById("exercise").innerText = "終了";
-        clearInterval(interval);
-        return;
-      }
-      nextExercise();
-    }
-  }, 1000);
-}
-
-function updateTimer() {
-  document.getElementById("timer").innerText = time;
+function reset() {
+    count = 0;
+    document.getElementById("count").innerText = count;
 }
 </script>
 
