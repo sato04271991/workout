@@ -1,76 +1,114 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Workout</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #111;
-      color: #fff;
-    }
-    h1 {
-      text-align: center;
-    }
-    .card {
-      background: #1e1e1e;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-    }
-    button {
-      width: 100%;
-      padding: 15px;
-      font-size: 18px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 10px;
-      background: #0a84ff;
-      color: white;
-    }
-    .done {
-      background: #2ecc71 !important;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout App</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #111;
+  color: #fff;
+  text-align: center;
+}
+
+h1 {
+  margin: 20px 0;
+}
+
+.container {
+  max-width: 400px;
+  margin: auto;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin: 10px 0;
+  font-size: 18px;
+  border: none;
+  border-radius: 10px;
+  background: #00c853;
+  color: white;
+}
+
+button:active {
+  background: #009624;
+}
+
+.card {
+  background: #222;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.timer {
+  font-size: 40px;
+  margin-top: 10px;
+}
+</style>
 </head>
+
 <body>
 
 <h1>Workout</h1>
 
+<div class="container">
+
+<button onclick="startWorkout()">スタート</button>
+
 <div class="card">
-  <div>腕立て 20回</div>
-  <button onclick="done(this)">完了</button>
+  <div>現在の種目</div>
+  <div id="exercise">待機中</div>
 </div>
 
 <div class="card">
-  <div>スクワット 20回</div>
-  <button onclick="done(this)">完了</button>
+  <div>タイマー</div>
+  <div class="timer" id="timer">0</div>
 </div>
 
-<div class="card">
-  <div>腹筋 20回</div>
-  <button onclick="done(this)">完了</button>
 </div>
-
-<button onclick="resetAll()">リセット</button>
 
 <script>
-  function done(btn) {
-    btn.classList.add("done");
-    btn.innerText = "完了済み";
-  }
+let exercises = ["腕立て", "スクワット", "腹筋", "休憩"];
+let index = 0;
+let time = 0;
+let interval;
 
-  function resetAll() {
-    document.querySelectorAll("button").forEach(btn => {
-      btn.classList.remove("done");
-      if (btn.innerText === "完了済み") {
-        btn.innerText = "完了";
+function startWorkout() {
+  index = 0;
+  nextExercise();
+}
+
+function nextExercise() {
+  clearInterval(interval);
+
+  document.getElementById("exercise").innerText = exercises[index];
+  time = 10;
+  updateTimer();
+
+  interval = setInterval(() => {
+    time--;
+    updateTimer();
+
+    if (time <= 0) {
+      index++;
+      if (index >= exercises.length) {
+        document.getElementById("exercise").innerText = "終了";
+        clearInterval(interval);
+        return;
       }
-    });
-  }
+      nextExercise();
+    }
+  }, 1000);
+}
+
+function updateTimer() {
+  document.getElementById("timer").innerText = time;
+}
 </script>
 
 </body>
